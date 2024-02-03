@@ -1,3 +1,19 @@
 from django.db import models
 
-# Create your models here.
+class Patient(models.Model):
+    name = models.CharField(max_length=255, null=True, blank=True)
+    email = models.EmailField(unique=True)
+    password = models.TextField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+class Counsellor(models.Model):
+    name = models.CharField(max_length=255, null=True, blank=True)
+    email = models.EmailField(unique=True)
+    password = models.TextField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+class Appointment(models.Model):
+    patient = models.ForeignKey(Patient, related_name="appointments")
+    counsellor = models.ForeignKey(Counsellor, related_name="appointments")
+    appointment_date = models.DateTimeField()
+    is_active = models.BooleanField(default=True)
