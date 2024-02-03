@@ -13,7 +13,7 @@ class Counsellor(models.Model):
     is_active = models.BooleanField(default=True)
 
 class Appointment(models.Model):
-    patient = models.ForeignKey(Patient, related_name="appointments")
-    counsellor = models.ForeignKey(Counsellor, related_name="appointments")
+    patient = models.ForeignKey(Patient, related_name="appointments", on_delete=models.CASCADE)
+    counsellor = models.ForeignKey(Counsellor, related_name="appointments", on_delete=models.CASCADE)
     appointment_date = models.DateTimeField()
     is_active = models.BooleanField(default=True)
