@@ -6,6 +6,10 @@ from .views import (
     AppointmentListCreateView, AppointmentRetrieveUpdateDeleteView,
     PatientAppointmentsView, CounsellorAppointmentsView, ActiveAppointmentsDateRangeView
 )
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 urlpatterns = [
     # Patient URLs
@@ -22,4 +26,7 @@ urlpatterns = [
     path('appointments/', AppointmentListCreateView.as_view(), name='appointment-list'),
     path('appointments/<int:pk>/', AppointmentRetrieveUpdateDeleteView.as_view(), name='appointment-detail'),
     path('appointments/active-date-range/', ActiveAppointmentsDateRangeView.as_view(), name='active-appointments-date-range'),
+
+    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
