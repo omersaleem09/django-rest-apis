@@ -1,9 +1,20 @@
-# serializers.py
 from rest_framework import serializers, status
 from .models import Patient, Counsellor, Appointment
 from django.db.utils import IntegrityError
 from django.core.exceptions import ValidationError
 from rest_framework.response import Response
+from django.contrib.auth import get_user_model
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ('email', 'password')
+        extra_kwargs = {'password': {'write_only': True}}
+    
+    
+    def create(self, validated_data):
+        user = get_user_model().objects.create_user(**validated_data)
+        return user
 
 class PatientSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,10 +31,18 @@ class AppointmentSerializer(serializers.ModelSerializer):
         model = Appointment
         fields = '__all__'
 
-    def create(self, validated_data):
-        try:
-            instance = super().create(validated_data)
-        except IntegrityError as e:
-            raise serializers.ValidationError(f"Error saving appointment: {str(e)}")
+    def validate(self, data):
+        patient = data['patient']
+        counsellor = data['counsellor']
 
-        return instance
+        # Check if there is an existing active appointment for the patient and counsellor
+        existing_active_appointment = Appointment.objects.filter(
+            patient=patient,
+            counsellor=counsellor,
+            is_active=True
+        ).exclude(id=data.get('id'))
+
+        if existing_active_appointment.exists():
+            raise serializers.ValidationError("A patient and counsellor can have only one active appointment at a time.")
+
+        return data

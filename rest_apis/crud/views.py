@@ -7,87 +7,53 @@ from rest_framework.response import Response
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from datetime import datetime
+from rest_framework.views import APIView
+from rest_framework import viewsets
+from rest_framework.generics import CreateAPIView
+from rest_framework.permissions import AllowAny
+from .serializers import UserSerializer
 
-class PatientListCreateView(generics.ListCreateAPIView):
-    queryset = Patient.objects.filter(is_active = True)
+class CreateUserView(CreateAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]
+
+
+class PatientAPIView(viewsets.ModelViewSet):
     serializer_class = PatientSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Patient.objects.filter(user__is_active=True)
+        return queryset
 
 
-class PatientRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Patient.objects.filter(is_active = True)
-    serializer_class = PatientSerializer
-    permission_classes = [IsAuthenticated]
-
-    def perform_destroy(self, instance):
-        instance.is_active = False
-        instance.save()
-
-
-class CounsellorListCreateView(generics.ListCreateAPIView):
-    queryset = Counsellor.objects.filter(is_active = True)
+class CounsellorAPIView(viewsets.ModelViewSet):
     serializer_class = CounsellorSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Counsellor.objects.filter(user__is_active=True)
+        return queryset
 
 
-class CounsellorRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Counsellor.objects.filter(is_active = True)
-    serializer_class = CounsellorSerializer
-    permission_classes = [IsAuthenticated]
-    
-    def perform_destroy(self, instance):
-        instance.is_active = False
-        instance.save()
-
-
-class AppointmentListCreateView(generics.ListCreateAPIView):
-    queryset = Appointment.objects.filter(is_active = True)
-    serializer_class = AppointmentSerializer
-    permission_classes = [IsAuthenticated]
-
-
-class AppointmentRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Appointment.objects.filter(is_active = True)
-    serializer_class = AppointmentSerializer
-    permission_classes = [IsAuthenticated]
-
-    def perform_destroy(self, instance):
-        instance.is_active = False
-        instance.save()
-
-class PatientAppointmentsView(generics.ListAPIView):
+class AppointmentApiView(viewsets.ModelViewSet):
     serializer_class = AppointmentSerializer
 
     def get_queryset(self):
-        patient_id = self.kwargs['patient_id']
-        return Appointment.objects.filter(patient_id=patient_id, is_active = True)
+        queryset = Appointment.objects.filter(is_active=True)
+        return queryset
 
-class CounsellorAppointmentsView(generics.ListAPIView):
-    serializer_class = AppointmentSerializer
+    def perform_create(self, serializer):
+        # Check if the patient and counsellor are active
+        patient = serializer.validated_data['patient']
+        counsellor = serializer.validated_data['counsellor']
 
-    def get_queryset(self):
-        counsellor_id = self.kwargs['counsellor_id']
-        return Appointment.objects.filter(counsellor_id=counsellor_id, is_active = True)
+        if not patient.is_active:
+            return Response({"detail": "The patient must be active to create an appointment."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
-class ActiveAppointmentsDateRangeView(generics.ListAPIView):
-    serializer_class = AppointmentSerializer
+        if not counsellor.is_active:
+            return Response({"detail": "The counsellor must be active to create an appointment."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
-    def get_queryset(self):
-        start_date = self.request.query_params.get('start_date')
-        end_date = self.request.query_params.get('end_date')
-
-        if not start_date or not end_date:
-            return Appointment.objects.none()
-
-        start_date = datetime.strptime(start_date, '%Y-%m-%d')
-        end_date = datetime.strptime(end_date, '%Y-%m-%d')
-
-        return Appointment.objects.filter(
-            is_active=True,
-            appointment_date__range=(start_date, end_date)
-        ).order_by('-appointment_date')
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.serializer_class(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # If both patient and counsellor are active, proceed with the appointment creation
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)   
