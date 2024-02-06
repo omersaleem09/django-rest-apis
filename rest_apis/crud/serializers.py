@@ -11,6 +11,15 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('email', 'password')
         extra_kwargs = {'password': {'write_only': True}}
     
+    def validate_password(self, value):
+        # Custom password strength validation
+        min_length = 8
+        if len(value) < min_length:
+            raise serializers.ValidationError(
+                f"Password must be at least {min_length} characters long."
+            )
+
+        return value
     
     def create(self, validated_data):
         user = get_user_model().objects.create_user(**validated_data)
