@@ -78,4 +78,4 @@ class Appointment(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.patient.username}'s appointment with {self.counsellor.username}"
+        return f"{self.patient.email}'s appointment with {self.counsellor.email }"
